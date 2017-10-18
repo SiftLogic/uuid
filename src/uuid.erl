@@ -76,7 +76,6 @@
          get_v3_compat/2,
          is_v3/1,
          get_v4/0,
-         get_v4/1,
          get_v4_urandom/0,
          is_v4/1,
          get_v5/1,
@@ -557,21 +556,7 @@ is_v3(_) ->
     uuid().
 
 get_v4() ->
-    get_v4(strong).
-
--spec get_v4('strong' | 'weak') ->
-    uuid().
-
-get_v4(strong) ->
     <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> = crypto:strong_rand_bytes(16),
-    <<Rand1:48,
-      0:1, 1:1, 0:1, 0:1,  % version 4 bits
-      Rand2:12,
-      1:1, 0:1,            % RFC 4122 variant bits
-      Rand3:62>>;
-
-get_v4(weak) ->
-    <<Rand1:48, _:4, Rand2:12, _:2, Rand3:62>> = crypto:rand_bytes(16),
     <<Rand1:48,
       0:1, 1:1, 0:1, 0:1,  % version 4 bits
       Rand2:12,
@@ -1185,7 +1170,7 @@ test() ->
       V4Rand2C:14,
       V4Rand2D:48>> = V4uuid2,
     true = uuid:is_v4(V4uuid2),
-    V4uuid3 = uuid:get_v4(strong),
+    V4uuid3 = uuid:get_v4(),
     <<_:48,
       0:1, 1:1, 0:1, 0:1,  % version 4 bits
       _:12,
