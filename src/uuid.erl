@@ -65,6 +65,7 @@
 -export([new/1,
          new/2,
          get_v1/1,
+         get_v1/2,
          get_v1_time/0,
          get_v1_time/1,
          get_v1_datetime/1,
@@ -265,6 +266,29 @@ get_v1(#uuid_state{node_id = NodeId,
                    timestamp_type = TimestampTypeInternal,
                    timestamp_last = TimestampLast} = State) ->
     MicroSeconds = timestamp(TimestampTypeInternal, TimestampLast),
+    % 16#01b21dd213814000 is the number of 100-ns intervals between the
+    % UUID epoch 1582-10-15 00:00:00 and the UNIX epoch 1970-01-01 00:00:00.
+    Time = MicroSeconds * 10 + 16#01b21dd213814000,
+    % will be larger than 60 bits after 5236-03-31 21:21:00
+    <<TimeHigh:12, TimeMid:16, TimeLow:32>> = <<Time:60>>,
+    {<<TimeLow:32, TimeMid:16,
+       0:1, 0:1, 0:1, 1:1,  % version 1 bits
+       TimeHigh:12,
+       1:1, 0:1,            % RFC 4122 variant bits
+       ClockSeq:14,
+       NodeId/binary>>,
+     State#uuid_state{timestamp_last = MicroSeconds}}.
+
+get_v1(#uuid_state{node_id = NodeId,
+                   clock_seq = ClockSeq,
+                   timestamp_last = TimestampLast} = State,
+       Timestamp) ->
+    MicroSeconds = if
+        Timestamp =:= TimestampLast ->
+            Timestamp + 1;
+        true ->
+            Timestamp
+    end,
     % 16#01b21dd213814000 is the number of 100-ns intervals between the
     % UUID epoch 1582-10-15 00:00:00 and the UNIX epoch 1970-01-01 00:00:00.
     Time = MicroSeconds * 10 + 16#01b21dd213814000,
